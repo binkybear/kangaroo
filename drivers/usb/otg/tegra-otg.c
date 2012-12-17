@@ -43,6 +43,7 @@
 #define  USB_VBUS_INT_STATUS	(1 << 9)
 #define  USB_VBUS_STATUS	(1 << 10)
 #define  USB_INTS		(USB_VBUS_INT_STATUS | USB_ID_INT_STATUS)
+#define  USB_INT_ENS		(USB_VBUS_INT_EN | USB_ID_INT_EN | USB_VBUS_WAKEUP_EN | USB_ID_PIN_WAKEUP_EN)
 
 extern volatile int smb347_deep_sleep;  // tmtmtm: from smb347-charger.c
 extern int usbhost_hostmode;
@@ -498,6 +499,8 @@ static int tegra_otg_probe(struct platform_device *pdev)
 
 	if (!ehci_pdata->default_enable)
 		clk_disable(tegra->clk);
+
+	tegra->intr_reg_data = tegra->intr_reg_data | USB_INT_ENS;
 	dev_info(&pdev->dev, "otg transceiver registered\n");
 	return 0;
 
