@@ -19,6 +19,7 @@
 
 #include <linux/sched.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
@@ -36,6 +37,8 @@
  * not need additional reference counting. The structure is protected by the
  * mutex 'mutex'.
  */
+
+
 struct logger_log {
 	unsigned char 		*buffer;/* the ring buffer itself */
 	struct miscdevice	misc;	/* misc device representing the log */
@@ -695,10 +698,17 @@ static struct logger_log VAR = { \
 	.size = SIZE, \
 };
 
+<<<<<<< HEAD
 DEFINE_LOGGER_DEVICE(log_main, LOGGER_LOG_MAIN, 256*1024)
 DEFINE_LOGGER_DEVICE(log_events, LOGGER_LOG_EVENTS, 256*1024)
 DEFINE_LOGGER_DEVICE(log_radio, LOGGER_LOG_RADIO, 256*1024)
 DEFINE_LOGGER_DEVICE(log_system, LOGGER_LOG_SYSTEM, 256*1024)
+=======
+DEFINE_LOGGER_DEVICE(log_main, LOGGER_LOG_MAIN, 32*1024)
+DEFINE_LOGGER_DEVICE(log_events, LOGGER_LOG_EVENTS, 16*1024)
+DEFINE_LOGGER_DEVICE(log_radio, LOGGER_LOG_RADIO, 16*1024)
+DEFINE_LOGGER_DEVICE(log_system, LOGGER_LOG_SYSTEM, 32*1024)
+>>>>>>> 6a39334... Enable setting security contexts on rootfs inodes.
 
 static struct logger_log *get_log_from_minor(int minor)
 {
