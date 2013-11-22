@@ -79,11 +79,10 @@ MODULE_SUPPORTED_DEVICE("{{Generic,USB Audio}}");
 
 // tmtmtm
 extern int usbhost_hotplug_on_boot;
-struct timer_list my_timer;
+extern struct device_driver *current_drv; // from base/dd.c
+//struct timer_list my_timer;
 struct usb_device *postpone_usb_snd_dev = NULL;
 struct device_driver *postpone_usb_snd_drv = NULL;
-extern struct device_driver *current_drv; // from base/dd.c
-
 
 static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;	/* Index 0-MAX */
 static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;	/* ID for this card */
@@ -434,24 +433,24 @@ static int snd_usb_audio_create(struct usb_device *dev, int idx,
 }
 
 //tmtmtm
-static int mykthread(void *unused)
+void snd_usb_audio_exec_delayed(void *unused)
 {
-	printk("##### sound/usb/card.c mykthread driver_attach\n");
-	if(postpone_usb_snd_drv!=NULL)
-    	driver_attach(postpone_usb_snd_drv); // drives/base/dd.c
-
-    return 0;
+	if(postpone_usb_snd_drv!=NULL) {
+    	driver_attach(postpone_usb_snd_drv); // drivers/base/dd.c
+    	postpone_usb_snd_drv = NULL;
+   	}
 }
+/*
 static void delayed_func(unsigned long unused)
 {
 	printk("##### sound/usb/card.c delayed_func driver_attach\n");
 
     // Must offload to another thread, in order to prevent "BUG: scheduling while atomic"
     // "calling block IO api(generic_make_request) from a soft irq thread (read callback) is a bad idea"
-    int ret = kernel_thread(mykthread, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
+    int ret = kernel_thread(snd_usb_audio_exec_delayed, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
 	printk("##### sound/usb/card.c delayed_func ret=%d\n",ret);
 }
-
+*/
 
 /*
  * probe the active usb device
@@ -475,7 +474,6 @@ snd_usb_audio_probe(struct usb_device *dev,
 	int ifnum;
 	u32 id;
 
-	printk("##### sound/usb/card.c snd_usb_audio_probe\n");
 	alts = &intf->altsetting[0];
 	ifnum = get_iface_desc(alts)->bInterfaceNumber;
 	id = USB_ID(le16_to_cpu(dev->descriptor.idVendor),
@@ -491,18 +489,16 @@ snd_usb_audio_probe(struct usb_device *dev,
 		struct timespec tp; ktime_get_ts(&tp);
 	   	if (tp.tv_sec<8 && postpone_usb_snd_dev==NULL) {
 			printk("##### sound/usb/card.c DON'T REGISTER EARLY tv_sec=%d ++++++++++++++++++++\n",tp.tv_sec);
-			
-			// it would be good if the delayed call to driver_attach() (which will result in UEVENT ALSA_ID)
-			// would not be done by time (20 sec), but by ???
-			// the current strategy may prove to be not 100% reliable
-			
 		    postpone_usb_snd_dev = dev;
 		    postpone_usb_snd_drv = current_drv;       
+			printk("##### sound/usb/card.c delayed call to driver_attach prepared\n");
+			/*
 		    init_timer(&my_timer);
 		    my_timer.expires = jiffies + 18*HZ; // n*HZ = delay in number of seconds
 		    my_timer.function = delayed_func;
 		    add_timer(&my_timer);
 			printk("##### sound/usb/card.c delayed call to driver_attach initiated\n");
+			*/
 			goto __err_val;
 		}
 	   	printk("##### sound/usb/card.c REGISTER tv_sec=%d ++++++++++++++++++++++++\n",tp.tv_sec);
@@ -586,7 +582,6 @@ snd_usb_audio_probe(struct usb_device *dev,
 	chip->num_interfaces++;
 	chip->probing = 0;
 	mutex_unlock(&register_mutex);
-	printk("##### sound/usb/card.c snd_usb_audio_probe done OK\n");
 	return chip;
 
  __error:

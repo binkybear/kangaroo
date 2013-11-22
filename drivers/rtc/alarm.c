@@ -24,6 +24,8 @@
 #include <linux/sysdev.h>
 #include <linux/wakelock.h>
 
+extern int usbhost_firm_sleep; // tmtmtm
+
 #define ANDROID_ALARM_PRINT_ERROR (1U << 0)
 #define ANDROID_ALARM_PRINT_INIT_STATUS (1U << 1)
 #define ANDROID_ALARM_PRINT_TSET (1U << 2)
@@ -33,7 +35,10 @@
 #define ANDROID_ALARM_PRINT_FLOW (1U << 6)
 
 static int debug_mask = ANDROID_ALARM_PRINT_ERROR | \
-			ANDROID_ALARM_PRINT_INIT_STATUS;
+			ANDROID_ALARM_PRINT_INIT_STATUS
+            | ANDROID_ALARM_PRINT_CALL          // tmtmtm
+            | ANDROID_ALARM_PRINT_SUSPEND       // tmtmtm
+			;
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define pr_alarm(debug_level_mask, args...) \
@@ -341,16 +346,31 @@ static enum hrtimer_restart alarm_timer_triggered(struct hrtimer *timer)
 				ktime_to_ns(alarm->softexpires));
 			break;
 		}
-		base->first = rb_next(&alarm->node);
-		rb_erase(&alarm->node, &base->alarms);
-		RB_CLEAR_NODE(&alarm->node);
-		pr_alarm(CALL, "call alarm, type %d, func %pF, %lld (s %lld)\n",
-			alarm->type, alarm->function,
-			ktime_to_ns(alarm->expires),
-			ktime_to_ns(alarm->softexpires));
-		spin_unlock_irqrestore(&alarm_slock, flags);
-		alarm->function(alarm);
-		spin_lock_irqsave(&alarm_slock, flags);
+	    base->first = rb_next(&alarm->node);
+
+		// tmtmtm
+		if((alarm->type==ANDROID_ALARM_RTC_WAKEUP || alarm->type==ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP) &&
+		  usbhost_firm_sleep && suspended) {
+		  	// skip this wakeup-alarm
+		    pr_alarm(CALL, "skip alarm, type %d, func %pF, %lld (s %lld) firm_sleep=%d suspended=%d\n",
+			    alarm->type, alarm->function,
+			    ktime_to_ns(alarm->expires),
+			    ktime_to_ns(alarm->softexpires),
+			    usbhost_firm_sleep,  // tmtmtm
+			    suspended);  // tmtmtm
+		} else {
+		    rb_erase(&alarm->node, &base->alarms);
+		    RB_CLEAR_NODE(&alarm->node);
+		    pr_alarm(CALL, "call alarm, type %d, func %pF, %lld (s %lld) firm_sleep=%d suspended=%d\n",
+			    alarm->type, alarm->function,
+			    ktime_to_ns(alarm->expires),
+			    ktime_to_ns(alarm->softexpires),
+			    usbhost_firm_sleep,  // tmtmtm
+			    suspended);  // tmtmtm
+       		spin_unlock_irqrestore(&alarm_slock, flags);
+    		alarm->function(alarm);
+       		spin_lock_irqsave(&alarm_slock, flags);
+        } 
 	}
 	if (!base->first)
 		pr_alarm(FLOW, "no more alarms of type %d\n", base - alarms);
@@ -399,6 +419,8 @@ static int alarm_suspend(struct platform_device *pdev, pm_message_t state)
 				hrtimer_get_expires(&tmp_queue->timer).tv64 <
 				hrtimer_get_expires(&wakeup_queue->timer).tv64))
 		wakeup_queue = tmp_queue;
+// tmtmtm
+/*
 	if (wakeup_queue) {
 		rtc_read_time(alarm_rtc_dev, &rtc_current_rtc_time);
 		getnstimeofday(&wall_time);
@@ -437,6 +459,7 @@ static int alarm_suspend(struct platform_device *pdev, pm_message_t state)
 			spin_unlock_irqrestore(&alarm_slock, flags);
 		}
 	}
+*/
 	return err;
 }
 

@@ -374,3 +374,11 @@ config DVB_USB_TECHNISAT_USB2
 	select DVB_STV6110x if !DVB_FE_CUSTOMISE
 	help
 	  Say Y here to support the Technisat USB2 DVB-S/S2 device
+
+# tmtmtm
+config DVB_USB_RTL2832U
+    tristate "Realtek RTL2832U DVB-T USB2.0 support"
+    depends on DVB_USB
+    help
+      Realtek RTL2832U DVB-T driver.
+

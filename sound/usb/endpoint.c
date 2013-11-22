@@ -98,6 +98,7 @@ int snd_usb_add_audio_endpoint(struct snd_usb_audio *chip, int stream, struct au
 			list_add_tail(&fp->list, &subs->fmt_list);
 			subs->num_formats++;
 			subs->formats |= fp->formats;
+        	printk("##### endpoint.c snd_usb_add_audio_endpoint return after subs->endpoint == fp->endpoint\n");
 			return 0;
 		}
 	}
@@ -110,16 +111,21 @@ int snd_usb_add_audio_endpoint(struct snd_usb_audio *chip, int stream, struct au
 		if (subs->endpoint)
 			continue;
 		err = snd_pcm_new_stream(as->pcm, stream, 1);
-		if (err < 0)
+		if (err < 0) {
+        	printk("##### endpoint.c snd_usb_add_audio_endpoint fail after snd_usb_new_stream()\n");
 			return err;
+		}
 		snd_usb_init_substream(as, stream, fp);
+    	printk("##### endpoint.c snd_usb_add_audio_endpoint return after snd_usb_init_substream()\n");
 		return 0;
 	}
 
 	/* create a new pcm */
 	as = kzalloc(sizeof(*as), GFP_KERNEL);
-	if (!as)
+	if (!as) {
+    	printk("##### endpoint.c snd_usb_add_audio_endpoint fail on kzalloc\n");
 		return -ENOMEM;
+    }
 	as->pcm_index = chip->pcm_devs;
 	as->chip = chip;
 	as->fmt_type = fp->fmt_type;
@@ -129,6 +135,7 @@ int snd_usb_add_audio_endpoint(struct snd_usb_audio *chip, int stream, struct au
 			  &pcm);
 	if (err < 0) {
 		kfree(as);
+    	printk("##### endpoint.c snd_usb_add_audio_endpoint fail on snd_pcm_new\n");
 		return err;
 	}
 	as->pcm = pcm;
@@ -145,6 +152,7 @@ int snd_usb_add_audio_endpoint(struct snd_usb_audio *chip, int stream, struct au
 	list_add(&as->list, &chip->pcm_list);
 	chip->pcm_devs++;
 
+   	printk("##### endpoint.c snd_usb_add_audio_endpoint SUCCESS '%s'\n",pcm->name);
 	snd_usb_proc_pcm_format_add(as);
 
 	return 0;
@@ -346,6 +354,8 @@ int snd_usb_parse_audio_endpoints(struct snd_usb_audio *chip, int iface_no)
 
 		/* get format type */
 		fmt = snd_usb_find_csint_desc(alts->extra, alts->extralen, NULL, UAC_FORMAT_TYPE);
+		// tmtmtm
+		//printk("##### endpoint.c %d:%u:%d: snd_usb_parse_audio_endpoints\n",dev->devnum, iface_no, altno);
 		if (!fmt) {
 			snd_printk(KERN_ERR "%d:%u:%d : no UAC_FORMAT_TYPE desc\n",
 				   dev->devnum, iface_no, altno);
@@ -427,13 +437,19 @@ int snd_usb_parse_audio_endpoints(struct snd_usb_audio *chip, int iface_no)
 
 		/* ok, let's parse further... */
 		if (snd_usb_parse_audio_format(chip, fp, format, fmt, stream, alts) < 0) {
+            		// tmtmtm
+		    //snd_printdd(KERN_INFO "%d:%u:%d: add audio endpoint %#x\n", dev->devnum, iface_no, altno, fp->endpoint);
+		    //printk("##### endpoint.c %d:%u:%d: snd_usb_parse_audio_endpoints let's parse further %#x\n", dev->devnum, iface_no, altno, fp->endpoint);
+
 			kfree(fp->rate_table);
 			kfree(fp);
 			fp = NULL;
 			continue;
 		}
 
-		snd_printdd(KERN_INFO "%d:%u:%d: add audio endpoint %#x\n", dev->devnum, iface_no, altno, fp->endpoint);
+       		// tmtmtm
+		//snd_printdd(KERN_INFO "%d:%u:%d: add audio endpoint %#x\n", dev->devnum, iface_no, altno, fp->endpoint);
+		//printk("##### endpoint.c %d:%u:%d: snd_usb_parse_audio_endpoints add audio endpoint %#x\n", dev->devnum, iface_no, altno, fp->endpoint);
 		err = snd_usb_add_audio_endpoint(chip, stream, fp);
 		if (err < 0) {
 			kfree(fp->rate_table);
@@ -443,7 +459,9 @@ int snd_usb_parse_audio_endpoints(struct snd_usb_audio *chip, int iface_no)
 		/* try to set the interface... */
 		usb_set_interface(chip->dev, iface_no, altno);
 		snd_usb_init_pitch(chip, iface_no, alts, fp);
-		snd_usb_init_sample_rate(chip, iface_no, alts, fp, fp->rate_max);
+		//tmtmtm
+        	//printk("##### endpoint.c snd_usb_parse_audio_endpoints\n");
+			snd_usb_init_sample_rate(chip, iface_no, alts, fp, fp->rate_max);
 	}
 	return 0;
 }

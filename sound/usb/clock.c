@@ -212,6 +212,10 @@ static int set_sample_rate_v1(struct snd_usb_audio *chip, int iface,
 
 	ep = get_endpoint(alts, 0)->bEndpointAddress;
 
+    // tmtmtm
+    printk("##### clock.c set_sample_rate dev=%d iface=%d altset=%d ep=%#x rate=%d\n",
+        dev->devnum, iface, fmt->altsetting, ep, rate);
+
 	/* if endpoint doesn't have sampling rate control, bail out */
 	if (!(fmt->attributes & UAC_EP_CS_ATTR_SAMPLE_RATE))
 		return 0;
@@ -225,6 +229,7 @@ static int set_sample_rate_v1(struct snd_usb_audio *chip, int iface,
 				   data, sizeof(data), 1000)) < 0) {
 		snd_printk(KERN_ERR "%d:%d:%d: cannot set freq %d to ep %#x\n",
 			   dev->devnum, iface, fmt->altsetting, rate, ep);
+        printk("##### clock.c set_sample_rate cannot set freq ERR=%d\n",err);
 		return err;
 	}
 
@@ -234,6 +239,7 @@ static int set_sample_rate_v1(struct snd_usb_audio *chip, int iface,
 				   data, sizeof(data), 1000)) < 0) {
 		snd_printk(KERN_WARNING "%d:%d:%d: cannot get freq at ep %#x\n",
 			   dev->devnum, iface, fmt->altsetting, ep);
+        printk("##### clock.c set_sample_rate cannot get freq\n");
 		return 0; /* some devices don't support reading */
 	}
 

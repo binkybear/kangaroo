@@ -1110,8 +1110,10 @@ long easycap_unlocked_ioctl(struct file *file,
 			v4l2_input.std = V4L2_STD_PAL |
 					V4L2_STD_SECAM |
 					V4L2_STD_NTSC ;
-			v4l2_input.status = 0;
+			v4l2_input.status = peasycap->lost[0];
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		case 1: {
@@ -1124,6 +1126,8 @@ long easycap_unlocked_ioctl(struct file *file,
 					V4L2_STD_NTSC;
 			v4l2_input.status = 0;
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		case 2: {
@@ -1136,6 +1140,8 @@ long easycap_unlocked_ioctl(struct file *file,
 					V4L2_STD_NTSC ;
 			v4l2_input.status = 0;
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		case 3: {
@@ -1148,6 +1154,8 @@ long easycap_unlocked_ioctl(struct file *file,
 					V4L2_STD_NTSC ;
 			v4l2_input.status = 0;
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		case 4: {
@@ -1160,6 +1168,8 @@ long easycap_unlocked_ioctl(struct file *file,
 					V4L2_STD_NTSC ;
 			v4l2_input.status = 0;
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		case 5: {
@@ -1172,9 +1182,13 @@ long easycap_unlocked_ioctl(struct file *file,
 					V4L2_STD_NTSC ;
 			v4l2_input.status = 0;
 			JOM(8, "%i=index: %s\n", index, &v4l2_input.name[0]);
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			break;
 		}
 		default: {
+			//SAM("CASE %i",index);
+			//SAM("STATUS %i", peasycap->lost[0]);
 			JOM(8, "%i=index: exhausts inputs\n", index);
 			mutex_unlock(&easycapdc60_dongle[kd].mutex_video);
 			return -EINVAL;

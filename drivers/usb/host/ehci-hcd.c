@@ -186,14 +186,17 @@ static int handshake (struct ehci_hcd *ehci, void __iomem *ptr,
 
 	do {
 		result = ehci_readl(ehci, ptr);
-		if (result == ~(u32)0)		/* card removed */
+		if (result == ~(u32)0) {		/* card removed */
+  	    	printk("#### ehci-hcd handshake hardware removed\n");
 			return -ENODEV;
+		}
 		result &= mask;
 		if (result == done)
 			return 0;
 		udelay (1);
 		usec--;
 	} while (usec > 0);
+	printk("#### ehci-hcd handshake -ETIMEDOUT result=%08x\n",result);
 	return -ETIMEDOUT;
 }
 

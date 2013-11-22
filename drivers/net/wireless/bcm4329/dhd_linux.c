@@ -2124,6 +2124,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen, void *dev)
 	dhd->wl_count = 0;
 	dhd->wl_packet = 0;
 #ifdef CONFIG_HAS_WAKELOCK
+        pr_info("____ bcm4329 dhd_attach wlan_wake\n");
 	wake_lock_init(&dhd->wl_wifi, WAKE_LOCK_SUSPEND, "wlan_wake");
 	wake_lock_init(&dhd->wl_rxwake, WAKE_LOCK_SUSPEND, "wlan_rx_wake");
 #endif

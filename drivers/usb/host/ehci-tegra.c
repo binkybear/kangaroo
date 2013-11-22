@@ -60,6 +60,9 @@
 
 extern void baseband_xmm_L3_resume_check(void);
 extern volatile int smb347_deep_sleep;  // tmtmtm: from smb347-charger.c
+extern volatile int usbhost_charging_state; // tmtmtm: from smb347-charger.c
+extern volatile int usbhost_hostmode;  // set in smb347-charger.c
+extern volatile int usbhost_fixed_install_mode;
 static struct usb_hcd *modem_ehci_handle;
 
 struct tegra_ehci_hcd {
@@ -221,13 +224,22 @@ static irqreturn_t tegra_ehci_irq (struct usb_hcd *hcd)
 		}
 		else if (tegra->bus_suspended &&
 				tegra->port_speed > TEGRA_USB_PHY_PORT_SPEED_HIGH) {
-		  if(smb347_deep_sleep) {
-    	    printk("ehci-tegra %s wake-up/OTG-UNPLUG with smb347_deep_sleep: special\n", __func__);
+
+		  // we bypass here, in FI mode when waking up from deep sleep
+		  if(smb347_deep_sleep && usbhost_charging_state) { // tmtmtm
+    	    printk("  ######### ehci-tegra ehci_irq with smb347_deep_sleep=%d usbhost_charging_state=%d special\n", 
+    	      smb347_deep_sleep,usbhost_charging_state);
     	    // fix: skip default return
     	  } else {
+
 			spin_unlock(&ehci->lock);
+			// this log line can be harmful?
+			//printk("######### ehci-tegra ehci_irq with smb347_deep_sleep=%d usbhost_charging_state=%d default\n",
+			//  smb347_deep_sleep,usbhost_charging_state);
 			return 0;
+
 		  }
+
 		}
 		spin_unlock(&ehci->lock);
 	}
@@ -597,10 +609,14 @@ static int tegra_usb_suspend(struct usb_hcd *hcd, bool is_dpd)
 	return 0;
 }
 
+static void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
+#define PMC_WAKE_STATUS		0x14
+#define PMC_WAKE2_STATUS	0x168
+
 static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
-	struct usb_device *udev = hcd->self.root_hub;
+	//struct usb_device *udev = hcd->self.root_hub;
 	struct ehci_hcd	*ehci = hcd_to_ehci(hcd);
 	struct ehci_regs __iomem *hw = ehci->regs;
 	unsigned long val;
@@ -608,24 +624,94 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 	bool null_ulpi;
 	bool utmip_remote_wakeup = false;
 
+    // get wake reason (0x1000000=power button, 0x40000=power supply, ...)
+	u32 wakestatus1 = __raw_readl(pmc + PMC_WAKE_STATUS);
+	u32 wakestatus2 = readl(pmc + PMC_WAKE2_STATUS);
+
+	// Clear PMC Wake Status register while going to suspend
+	// see pm-irq.c: tegra_pm_irq_syscore_suspend()
+	if(wakestatus1>0) {
+    	__raw_writel(wakestatus1, pmc + PMC_WAKE_STATUS);
+    	udelay(130);
+    }
+	if(wakestatus2>0) {
+    	writel(0, pmc + PMC_WAKE2_STATUS);
+    	udelay(130);
+    }
+
+	u32 wakestatusb1 = __raw_readl(pmc + PMC_WAKE_STATUS);
+	u32 wakestatusb2 = readl(pmc + PMC_WAKE2_STATUS);
+
+	//u32 wakestatusb1 = 0x666;
+	//u32 wakestatusb2 = 0x666;
+
+    printk("#### ehci-tegra tegra_usb_resume with smb347_deep_sleep=%d charging=%d hostmode=%d wakestatus=0x%x 0x%x 0x%x 0x%x\n",
+      smb347_deep_sleep,usbhost_charging_state,usbhost_hostmode,wakestatus1,wakestatus2,wakestatusb1,wakestatusb2);
+
 	null_ulpi = (tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_NULL_ULPI);
 	hsic = (tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_HSIC);
 
 	tegra_ehci_power_up(hcd, is_dpd);
 	set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
 
-    if(smb347_deep_sleep) {
-        printk("ehci-tegra %s wake-up/OTG-PLUG with smb347_deep_sleep: special\n", __func__);
-	} else
-	if ((tegra->port_speed > TEGRA_USB_PHY_PORT_SPEED_HIGH) || (hsic) ||
-	    (null_ulpi)) {
-		goto restart;
-	}
+	// we bypass here, if we pull the (unpowered?) otg adapter, which has woken us up from deep sleep
+	// but also if we wake from power button while otg+power was connected all the time
+	// and maybe also, if we wake from power re-gain while otg was connected all the time
+
+    if(wakestatus1==0 && wakestatus2==0x1) {
+      // WAKE32, bcmsdh_sdmmc in deep sleep
+      printk("#### ehci-tegra tegra_usb_resume bcmsdh_sdmmc special wake host mode\n");
+      // fall through and enable host mode
+    } else
+
+    if(wakestatus1==0x40000 && wakestatus2==0) {
+      // power gain (WAKE18, max77663) in deep sleep
+      // TODO: also powered OTG being plugged  -  todo???
+      printk("#### ehci-tegra tegra_usb_resume POWER SUPPLY1 special wake host mode\n");
+      // fall through and enable host mode
+    } else
+
+    if(wakestatus1==0x1000000 && wakestatus2==0) {
+      // wake from sleep by power button while connected to power (otg connected all the time)
+      printk("#### ehci-tegra tegra_usb_resume POWER BUTTON special wake host mode\n");
+      // fall through and enable host mode
+    } else
+
+    if(wakestatus1==0 && wakestatus2==0x80) {
+      // pull otg from sleeping device
+      printk("#### ehci-tegra tegra_usb_resume PULL OTG special restart\n");
+	  goto restart;
+	} else {
+        if(smb347_deep_sleep && !usbhost_charging_state && usbhost_fixed_install_mode) {
+          // re-apply of ext power, after device deep sleep started (otg-adapter connected)
+          // also: manual wake in pure OTG mode (SKIP!)
+          //printk("#### ehci-tegra tegra_usb_resume POWER SUPPLY2 special skip\n");
+          printk("#### ehci-tegra tegra_usb_resume LEAVE smb347_deep_sleep && !usbhost_charging_state && usbhost_fixed_install_mode\n");
+          // fall through and enable host mode - CRASH + confirmed
+          // goto restart; - CRASH
+          goto leave;
+        }
+
+        printk("#### ehci-tegra tegra_usb_resume DEFAULT RESTART CHECK\n");
+	    if ((tegra->port_speed > TEGRA_USB_PHY_PORT_SPEED_HIGH) || (hsic) ||
+	        (null_ulpi)) {
+          // TODO: may crash: smb347_deep_sleep=0 usbhost_charging_state=0 wakestatus=0x0 0x0
+          // for instance:
+          // - otg connected, re-apply of ext power, shortly after device was manually forced to sleep, while not being powered
+
+          // - plug otg into sleeping host
+          // - from wifi optimization tight loop
+          printk("#### ehci-tegra tegra_usb_resume default restart\n");
+	      goto restart;
+	    }
+    }
 
 	/* Force the phy to keep data lines in suspend state */
+    printk("#### ehci-tegra tegra_usb_resume Force the phy to keep data lines in suspend state\n");
 	tegra_ehci_phy_restore_start(tegra->phy, tegra->port_speed);
 
 	if (tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_UTMIP) {
+        printk("#### ehci-tegra tegra_usb_resume ehci_reset\n");
 		ehci_reset(ehci);
 	}
 
@@ -634,6 +720,7 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 
 	if ((tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_UTMIP) &&
 		(tegra->ehci->has_hostpc)) {
+        printk("#### ehci-tegra tegra_usb_resume has_hostpc\n");
 		val = readl(hcd->regs + HOSTPC_REG_OFFSET);
 		val &= ~HOSTPC1_DEVLC_PTS(~0);
 		val |= HOSTPC1_DEVLC_STS;
@@ -649,11 +736,17 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 	if ((tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_UTMIP) &&
 		(tegra->ehci->has_hostpc) && (tegra->phy->remote_wakeup)) {
 		utmip_remote_wakeup = true;
+        printk("#### ehci-tegra tegra_usb_resume utmip_remote_wakeup\n");
+	} else {
+        printk("#### ehci-tegra tegra_usb_resume not utmip_remote_wakeup %d %d %d\n",
+            (tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_UTMIP),
+            tegra->ehci->has_hostpc, tegra->phy->remote_wakeup);
 	}
 
 	/* Check if the phy resume from LP0. When the phy resume from LP0
 	 * USB register will be reset. */
 	if (!readl(&hw->async_next)) {
+        printk("#### ehci-tegra tegra_usb_resume phy resume from LP0\n");
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 		/* Start the controller */
 		val = readl(&hw->command);
@@ -676,9 +769,12 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 		val &= ~PORT_TEST(~0);
 		writel(val, &hw->port_status[0]);
 		udelay(10);
+	} else {
+        printk("#### ehci-tegra tegra_usb_resume NOT phy resume from LP0\n");
 	}
 
 	/* Poll until CCS is enabled */
+    printk("#### ehci-tegra tegra_usb_resume Poll until CCS is enabled...\n");
 	if (handshake(ehci, &hw->port_status[0], PORT_CONNECT,
 						 PORT_CONNECT, 2000)) {
 		pr_err("%s: timeout waiting for PORT_CONNECT\n", __func__);
@@ -686,6 +782,7 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 	}
 
 	/* Poll until PE is enabled */
+    printk("#### ehci-tegra tegra_usb_resume Poll PE is enabled...\n");
 	if (handshake(ehci, &hw->port_status[0], PORT_PE,
 						 PORT_PE, 2000)) {
 		pr_err("%s: timeout waiting for USB_PORTSC1_PE\n", __func__);
@@ -693,11 +790,13 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 	}
 
 	/* Clear the PCI status, to avoid an interrupt taken upon resume */
+    printk("#### ehci-tegra tegra_usb_resume Clear the PCI status\n");
 	val = readl(&hw->status);
 	val |= STS_PCD;
 	writel(val, &hw->status);
 
 	/* Put controller in suspend mode by writing 1 to SUSP bit of PORTSC */
+    printk("#### ehci-tegra tegra_usb_resume Put controller in suspend mode\n");
 	val = readl(&hw->port_status[0]);
 	if ((val & PORT_POWER) && (val & PORT_PE)) {
 		val |= PORT_SUSPEND;
@@ -713,6 +812,7 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 								__func__);
 			goto restart;
 		}
+        printk("#### ehci-tegra tegra_usb_resume Controller suspended\n");
 	}
 
 	tegra_ehci_phy_restore_end(tegra->phy);
@@ -720,12 +820,16 @@ static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 		ehci->command |= CMD_RUN;
 		ehci_writel(ehci, ehci->command, &ehci->regs->command);
 	}
-	return 0;
+    printk("#### ehci-tegra tegra_usb_resume regular end\n");
+	//return 0;
+	goto leave;
 
 restart:
+    printk("#### ehci-tegra tegra_usb_resume restart\n");
 	if (null_ulpi) {
 		bool LP0 = !readl(&hw->async_next);
 
+	    printk("#### ehci-tegra tegra_usb_resume restart with null_ulpi LP0=%d\n",LP0);
 		if (LP0) {
 			static int cnt = 1;
 
@@ -742,23 +846,52 @@ restart:
 		if (LP0)
 			tegra_ehci_phy_restore_end(tegra->phy);
 
-		return 0;
+        printk("#### ehci-tegra tegra_usb_resume restart end1\n");
+		//return 0;
+    	goto leave;
 	}
 
-	if ((tegra->port_speed <= TEGRA_USB_PHY_PORT_SPEED_HIGH) && (!hsic))
+	if ((tegra->port_speed <= TEGRA_USB_PHY_PORT_SPEED_HIGH) && (!hsic)) {
+	    printk("#### ehci-tegra tegra_usb_resume restart tegra_ehci_phy_restore_end\n");
 		tegra_ehci_phy_restore_end(tegra->phy);
+	}
 	if (hsic) {
+	    printk("#### ehci-tegra tegra_usb_resume restart hsic\n");
 		val = readl(&hw->port_status[0]);
-		if (!((val & PORT_POWER) && (val & PORT_PE)))
+		if (!((val & PORT_POWER) && (val & PORT_PE))) {
+		    printk("#### ehci-tegra tegra_usb_resume restart tegra_ehci_restart1\n");
 			tegra_ehci_restart(hcd, false);
+		}
 
+	    printk("#### ehci-tegra tegra_usb_resume restart bus_idle\n");
 		tegra_usb_phy_bus_idle(tegra->phy);
 		if (!tegra_usb_phy_is_device_connected(tegra->phy))
 			pr_err("%s: no hsic device conenction\n", __func__);
 	} else {
-		tegra_ehci_restart(hcd, false);
+/*
+		if(smb347_deep_sleep && usbhost_charging_state) {  // tmtmtm
+		    printk("#### ehci-tegra tegra_usb_resume restart DON'T tegra_ehci_restart2\n");
+		} else {
+*/
+	        printk("#### ehci-tegra tegra_usb_resume restart tegra_ehci_restart2\n");
+		    tegra_ehci_restart(hcd, false);
+/*
+		}
+*/
 	}
 
+leave:
+    printk("#### ehci-tegra tegra_usb_resume leave\n");
+/*
+	// Clear PMC Wake Status register while going to suspend
+	if(wakestatus1>0)
+    	__raw_writel(0, pmc + PMC_WAKE_STATUS);
+	if(wakestatus2>0)
+    	writel(0, pmc + PMC_WAKE2_STATUS);
+	if(wakestatus1>0 || wakestatus2>0)
+    	udelay(130);
+    printk("#### ehci-tegra tegra_usb_resume leave2\n");
+*/
 	return 0;
 }
 #endif
