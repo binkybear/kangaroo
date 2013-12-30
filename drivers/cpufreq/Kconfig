@@ -58,6 +58,12 @@ config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	  the frequency statically to the highest frequency supported by
 	  the CPU.
 
+config CPU_FREQ_DEFAULT_GOV_SMARTMAX
+       bool "smartmax"
+       select CPU_FREQ_GOV_SMARTMAX
+       help
+         Makes smartmax the default governor. 
+
 config CPU_FREQ_DEFAULT_GOV_POWERSAVE
 	bool "powersave"
 	depends on EXPERT
