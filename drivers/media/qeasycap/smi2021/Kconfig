@@ -1,0 +1,7 @@
+config VIDEO_SMI2021
+	tristate "Somagic SMI2021 USB video/audio capture support"
+	help
+	  This is a video4linux driver for SMI2021 based video capture devices.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called smi2021
