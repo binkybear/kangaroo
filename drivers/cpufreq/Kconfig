@@ -212,6 +212,17 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
+config CPU_FREQ_GOV_SMARTMAX
+
+  tristate "'smartmax' governor"
+  help
+    smartmax ftw!
+
+    To compile this driver as a module, choose M here: the
+    module will be called cpufreq_gaming.
+
+    If in doubt, say Y.
+
 menu "x86 CPU frequency scaling drivers"
 depends on X86
 source "drivers/cpufreq/Kconfig.x86"
