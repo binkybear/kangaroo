@@ -1,16 +1,16 @@
 /*
- * Author: andip71, 21.04.2013
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- */
+* Author: andip71, 21.04.2013
+*
+* This software is licensed under the terms of the GNU General Public
+* License version 2, as published by the Free Software Foundation, and
+* may be copied, distributed, and modified under those terms.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+*/
 
 
 #include <linux/kobject.h>
@@ -26,15 +26,15 @@ int logger_mode;
 static ssize_t logger_mode_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 
-	// print current mode
-	if (logger_mode == 0)
-	{
-		return sprintf(buf, "logger mode: %d (disabled)", logger_mode);
-	}
-	else
-	{
-		return sprintf(buf, "logger mode: %d (enabled)", logger_mode);
-	}
+        // print current mode
+        if (logger_mode == 0)
+        {
+                return sprintf(buf, "logger mode: %d (disabled)", logger_mode);
+        }
+        else
+        {
+                return sprintf(buf, "logger mode: %d (enabled)", logger_mode);
+        }
 
 }
 
@@ -42,19 +42,19 @@ static ssize_t logger_mode_show(struct kobject *kobj, struct kobj_attribute *att
 static ssize_t logger_mode_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
 
-	unsigned int ret = -EINVAL;
-	int val;
+        unsigned int ret = -EINVAL;
+        int val;
 
-	// read value from input buffer
-	ret = sscanf(buf, "%d", &val);
+        // read value from input buffer
+        ret = sscanf(buf, "%d", &val);
 
-	// check value and store if valid
-	if ((val == 0) ||  (val == 1))
-	{
-		logger_mode = val;
-	}
+        // check value and store if valid
+        if ((val == 0) || (val == 1))
+        {
+                logger_mode = val;
+        }
 
-	return count;
+        return count;
 }
 
 
@@ -76,7 +76,7 @@ static struct kobject *logger_mode_kobj;
 
 int logger_mode_init(void)
 {
-	int logger_mode_retval;
+        int logger_mode_retval;
 
         logger_mode_kobj = kobject_create_and_add("logger_mode", kernel_kobj);
 
@@ -87,12 +87,12 @@ int logger_mode_init(void)
         logger_mode_retval = sysfs_create_group(logger_mode_kobj, &logger_mode_attr_group);
 
         if (logger_mode_retval)
-	{
-			kobject_put(logger_mode_kobj);
-	}
+        {
+                        kobject_put(logger_mode_kobj);
+        }
 
-	// initialize logger mode to 0 (disabled) as default
-	logger_mode = 1;
+        // initialize logger mode to 1 (enabled) as default
+        logger_mode = 1;
 
         return (logger_mode_retval);
 }
@@ -100,8 +100,9 @@ int logger_mode_init(void)
 
 void logger_mode_exit(void)
 {
-	kobject_put(logger_mode_kobj);
+        kobject_put(logger_mode_kobj);
 }
+
 
 
 /* define driver entry points */
