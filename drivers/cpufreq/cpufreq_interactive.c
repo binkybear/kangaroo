@@ -58,38 +58,37 @@ struct cpufreq_interactive_cpuinfo {
 
 static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
 {
-  u64 idle_time;
-  u64 cur_wall_time;
-  u64 busy_time;
+        u64 idle_time;
+        u64 cur_wall_time;
+        u64 busy_time;
 
-  cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
+        cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
 
-  busy_time = cputime64_add(kstat_cpu(cpu).cpustat.user,
-      kstat_cpu(cpu).cpustat.system);
+        busy_time = cputime64_add(kstat_cpu(cpu).cpustat.user,
+                        kstat_cpu(cpu).cpustat.system);
 
-  busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.irq);
-  busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.softirq);
-  busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.steal);
-  busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.nice);
+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.irq);
+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.softirq);
+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.steal);
+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.nice);
 
-  idle_time = cur_wall_time - busy_time;
-  if (wall)
-    *wall = cputime_to_usecs(cur_wall_time);
+        idle_time = cur_wall_time - busy_time;
+        if (wall)
+                *wall = cputime_to_usecs(cur_wall_time);
 
-  return cputime_to_usecs(idle_time);
+        return cputime_to_usecs(idle_time);
 }
 
 static inline u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
 {
-  u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
+        u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
 
-  if (idle_time == -1ULL)
-    return get_cpu_idle_time_jiffy(cpu, wall);
-  else if (!io_busy)
+        if (idle_time == -1ULL)
+                return get_cpu_idle_time_jiffy(cpu, wall);
+        else if (!io_busy)
+                idle_time += get_cpu_iowait_time_us(cpu, wall);
 
-    idle_time += get_cpu_iowait_time_us(cpu, wall);
-
-  return idle_time;
+        return idle_time;
 }
 
 static DEFINE_PER_CPU(struct cpufreq_interactive_cpuinfo, cpuinfo);
@@ -1241,4 +1240,6 @@ MODULE_AUTHOR("Mike Chan <mike@android.com>");
 MODULE_DESCRIPTION("'cpufreq_interactive' - A cpufreq governor for "
         "Latency sensitive workloads");
 MODULE_LICENSE("GPL");
+
+
 
