@@ -19,5 +19,8 @@ extern DEFINE_PER_CPU(unsigned long int, tegra_cpu_min_freq);
 extern DEFINE_PER_CPU(unsigned long int, tegra_cpu_max_freq);
 =======
 extern int logger_mode;
+<<<<<<< HEAD:include/linux/tegra_minmax_cpufreq.h
 >>>>>>> 6a39334... Enable setting security contexts on rootfs inodes.:drivers/staging/android/logger_interface.h
 
+=======
+>>>>>>> parent of 6a39334... Enable setting security contexts on rootfs inodes.:drivers/staging/android/logger_interface.h
