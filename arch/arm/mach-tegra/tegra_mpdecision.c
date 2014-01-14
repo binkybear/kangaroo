@@ -1,28 +1,28 @@
 /*
- * arch/arm/mach-tegra/tegra_mpdecision.c
- *
- * This program features:
- * -cpu auto-hotplug/unplug based on system load (runqueue) for tegra quadcore
- *   -automatic decision wether to switch to low power core or not
- * -low power single core while screen is off
- * -extensive sysfs tuneables
- *
- * Copyright (c) 2012-2013, Dennis Rassmann <showp1984@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
+* arch/arm/mach-tegra/tegra_mpdecision.c
+*
+* This program features:
+* -cpu auto-hotplug/unplug based on system load (runqueue) for tegra quadcore
+* -automatic decision wether to switch to low power core or not
+* -low power single core while screen is off
+* -extensive sysfs tuneables
+*
+* Copyright (c) 2012-2013, Dennis Rassmann <showp1984@gmail.com>
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*/
 
 #include <linux/clk.h>
 #include <linux/err.h>
@@ -47,37 +47,37 @@
 #include "cpu-tegra.h"
 #include "pm.h"
 
-#define DEBUG                               0
+#define DEBUG 0
 
-#define MPDEC_TAG                           "[MPDEC]: "
-#define TEGRA_MPDEC_STARTDELAY              20000
-#define TEGRA_MPDEC_DELAY                   130
-#define TEGRA_MPDEC_PAUSE                   10000
+#define MPDEC_TAG "[MPDEC]: "
+#define TEGRA_MPDEC_STARTDELAY 20000
+#define TEGRA_MPDEC_DELAY 130
+#define TEGRA_MPDEC_PAUSE 10000
 
 /* will be overwritten later by lpcpu max clock */
-#define TEGRA_MPDEC_IDLE_FREQ               475000
+#define TEGRA_MPDEC_IDLE_FREQ 475000
 
 /* This rq value will be used if we only have the lpcpu online */
-#define TEGRA_MPDEC_LPCPU_RQ_DOWN           36
+#define TEGRA_MPDEC_LPCPU_RQ_DOWN 36
 
 /* This will be used to schedule lpcpu checks in suspend */
-#define TEGRA_MPDEC_LPCPU_CHECK_DELAY       200
+#define TEGRA_MPDEC_LPCPU_CHECK_DELAY 200
 
 /*
- * LPCPU hysteresis default values
- * we need at least 5 requests to go into lpmode and
- * we need at least 3 requests to come out of lpmode.
- * This does not affect frequency overrides
- */
-#define TEGRA_MPDEC_LPCPU_UP_HYS            4
-#define TEGRA_MPDEC_LPCPU_DOWN_HYS          2
+* LPCPU hysteresis default values
+* we need at least 5 requests to go into lpmode and
+* we need at least 3 requests to come out of lpmode.
+* This does not affect frequency overrides
+*/
+#define TEGRA_MPDEC_LPCPU_UP_HYS 4
+#define TEGRA_MPDEC_LPCPU_DOWN_HYS 2
 
 #ifdef CONFIG_TEGRA_MPDECISION_INPUTBOOST_CPUMIN
-#define TEGRA_MPDEC_BOOSTTIME               1000
-#define TEGRA_MPDEC_BOOSTFREQ_CPU0          910000
-#define TEGRA_MPDEC_BOOSTFREQ_CPU1          910000
-#define TEGRA_MPDEC_BOOSTFREQ_CPU2          760000
-#define TEGRA_MPDEC_BOOSTFREQ_CPU3          620000
+#define TEGRA_MPDEC_BOOSTTIME 1000
+#define TEGRA_MPDEC_BOOSTFREQ_CPU0 910000
+#define TEGRA_MPDEC_BOOSTFREQ_CPU1 910000
+#define TEGRA_MPDEC_BOOSTFREQ_CPU2 760000
+#define TEGRA_MPDEC_BOOSTFREQ_CPU3 620000
 #endif
 
 enum {
@@ -476,7 +476,7 @@ static void tegra_mpdec_suspended_work_thread(struct work_struct *work) {
 
 out:
     /* LP CPU is not up again, reschedule for next check.
-       Since we are suspended, double the delay to save resources */
+Since we are suspended, double the delay to save resources */
     queue_delayed_work(tegra_mpdec_suspended_workq, &tegra_mpdec_suspended_work,
                           (TEGRA_MPDEC_DELAY * 2));
 
@@ -568,8 +568,8 @@ static void tegra_mpdec_work_thread(struct work_struct *work) {
         lpup_req = 0;
         if (is_lp_cluster()) {
             /* hysteresis loop for lpcpu powerdown
-               this prevents the lpcpu to kick out too early and produce lags
-               we need at least 3 requests in order to power down the lpcpu */
+this prevents the lpcpu to kick out too early and produce lags
+we need at least 3 requests in order to power down the lpcpu */
             lpdown_req++;
             if (lpdown_req > tegra_mpdec_tuners_ins.lp_cpu_down_hysteresis) {
                 if(!tegra_lp_cpu_handler(false, false))
@@ -582,8 +582,8 @@ static void tegra_mpdec_work_thread(struct work_struct *work) {
         lpdown_req = 0;
         if ((!is_lp_cluster()) && (lp_possible())) {
             /* hysteresis loop for lpcpu powerup
-               this prevents the lpcpu to kick in too early and produce lags
-               we need at least 5 requests in order to power up the lpcpu */
+this prevents the lpcpu to kick in too early and produce lags
+we need at least 5 requests in order to power up the lpcpu */
             lpup_req++;
             if (lpup_req > tegra_mpdec_tuners_ins.lp_cpu_up_hysteresis) {
                 if(!tegra_lp_cpu_handler(true, false))
@@ -783,11 +783,11 @@ static const struct input_device_id mpdec_ids[] = {
 };
 
 static struct input_handler mpdec_input_handler = {
-    .event        = mpdec_input_event,
-    .connect      = mpdec_input_connect,
-    .disconnect   = mpdec_input_disconnect,
-    .name         = "mpdec_inputreq",
-    .id_table     = mpdec_ids,
+    .event = mpdec_input_event,
+    .connect = mpdec_input_connect,
+    .disconnect = mpdec_input_disconnect,
+    .name = "mpdec_inputreq",
+    .id_table = mpdec_ids,
 };
 #endif
 
@@ -874,11 +874,11 @@ static struct early_suspend tegra_mpdec_early_suspend_handler = {
 /**************************** SYSFS START ****************************/
 struct kobject *tegra_mpdec_kobject;
 
-#define show_one(file_name, object)                    \
-static ssize_t show_##file_name                        \
-(struct kobject *kobj, struct attribute *attr, char *buf)               \
-{                                    \
-    return sprintf(buf, "%u\n", tegra_mpdec_tuners_ins.object);    \
+#define show_one(file_name, object) \
+static ssize_t show_##file_name \
+(struct kobject *kobj, struct attribute *attr, char *buf) \
+{ \
+return sprintf(buf, "%u\n", tegra_mpdec_tuners_ins.object); \
 }
 
 show_one(startdelay, startdelay);
@@ -894,11 +894,11 @@ show_one(boost_enabled, boost_enabled);
 show_one(boost_time, boost_time);
 #endif
 
-#define show_one_twts(file_name, arraypos)                              \
-static ssize_t show_##file_name                                         \
-(struct kobject *kobj, struct attribute *attr, char *buf)               \
-{                                                                       \
-    return sprintf(buf, "%u\n", TwTs_Threshold[arraypos]);          \
+#define show_one_twts(file_name, arraypos) \
+static ssize_t show_##file_name \
+(struct kobject *kobj, struct attribute *attr, char *buf) \
+{ \
+return sprintf(buf, "%u\n", TwTs_Threshold[arraypos]); \
 }
 show_one_twts(twts_threshold_0, 0);
 show_one_twts(twts_threshold_1, 1);
@@ -909,18 +909,18 @@ show_one_twts(twts_threshold_5, 5);
 show_one_twts(twts_threshold_6, 6);
 show_one_twts(twts_threshold_7, 7);
 
-#define store_one_twts(file_name, arraypos)                             \
-static ssize_t store_##file_name                                        \
+#define store_one_twts(file_name, arraypos) \
+static ssize_t store_##file_name \
 (struct kobject *a, struct attribute *b, const char *buf, size_t count) \
-{                                                                       \
-    unsigned int input;                                             \
-    int ret;                                                        \
-    ret = sscanf(buf, "%u", &input);                                \
-    if (ret != 1)                                                   \
-        return -EINVAL;                                         \
-    TwTs_Threshold[arraypos] = input;                               \
-    return count;                                                   \
-}                                                                       \
+{ \
+unsigned int input; \
+int ret; \
+ret = sscanf(buf, "%u", &input); \
+if (ret != 1) \
+return -EINVAL; \
+TwTs_Threshold[arraypos] = input; \
+return count; \
+} \
 define_one_global_rw(file_name);
 store_one_twts(twts_threshold_0, 0);
 store_one_twts(twts_threshold_1, 1);
@@ -931,11 +931,11 @@ store_one_twts(twts_threshold_5, 5);
 store_one_twts(twts_threshold_6, 6);
 store_one_twts(twts_threshold_7, 7);
 
-#define show_one_nwns(file_name, arraypos)                              \
-static ssize_t show_##file_name                                         \
-(struct kobject *kobj, struct attribute *attr, char *buf)               \
-{                                                                       \
-    return sprintf(buf, "%u\n", NwNs_Threshold[arraypos]);          \
+#define show_one_nwns(file_name, arraypos) \
+static ssize_t show_##file_name \
+(struct kobject *kobj, struct attribute *attr, char *buf) \
+{ \
+return sprintf(buf, "%u\n", NwNs_Threshold[arraypos]); \
 }
 show_one_nwns(nwns_threshold_0, 0);
 show_one_nwns(nwns_threshold_1, 1);
@@ -946,18 +946,18 @@ show_one_nwns(nwns_threshold_5, 5);
 show_one_nwns(nwns_threshold_6, 6);
 show_one_nwns(nwns_threshold_7, 7);
 
-#define store_one_nwns(file_name, arraypos)                             \
-static ssize_t store_##file_name                                        \
+#define store_one_nwns(file_name, arraypos) \
+static ssize_t store_##file_name \
 (struct kobject *a, struct attribute *b, const char *buf, size_t count) \
-{                                                                       \
-    unsigned int input;                                             \
-    int ret;                                                        \
-    ret = sscanf(buf, "%u", &input);                                \
-    if (ret != 1)                                                   \
-        return -EINVAL;                                         \
-    NwNs_Threshold[arraypos] = input;                               \
-    return count;                                                   \
-}                                                                       \
+{ \
+unsigned int input; \
+int ret; \
+ret = sscanf(buf, "%u", &input); \
+if (ret != 1) \
+return -EINVAL; \
+NwNs_Threshold[arraypos] = input; \
+return count; \
+} \
 define_one_global_rw(file_name);
 store_one_nwns(nwns_threshold_0, 0);
 store_one_nwns(nwns_threshold_1, 1);
