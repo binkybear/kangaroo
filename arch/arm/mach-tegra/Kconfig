@@ -466,13 +466,6 @@ config TEGRA3_VARIANT_CPU_OVERCLOCK
         help
           CPU Overclocking option
 
-config TEGRA_GPU_OVERCLOCK
-	bool "Tegra3: Enable GPU OC"
-	depends on TEGRA_SILICON_PLATFORM
-	default n
-	help
-	  Choose y to oc the GPU.
-
 config CUSTOM_BRIGHTNESS
         bool "Custom Brightness Levels"
         depends on TEGRA_SILICON_PLATFORM
