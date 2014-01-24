@@ -473,12 +473,12 @@ config TEGRA_GPU_OVERCLOCK
 	help
 	  Choose y to oc the GPU.
 
-config DECREASE_MIN_BRIGHTNESS
-        bool "Decrease Minumum Brightness"
+config CUSTOM_BRIGHTNESS
+        bool "Custom Brightness Levels"
         depends on TEGRA_SILICON_PLATFORM
         default n
         help
-          Decrease minimum backlight for lowest brightness level used by android.
+        Allow custom min and max brightness
 
 config TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
 	bool "Use conservative cpu frequency governor when device enters early suspend"
