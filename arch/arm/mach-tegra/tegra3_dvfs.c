@@ -53,26 +53,30 @@ static const int core_millivolts[MAX_DVFS_FREQS] = {
 #ifdef CONFIG_CMDLINE_OPTIONS
 unsigned int cmdline_gpuoc = 0;
 
-static int __init dvfs_read_gpuoc_cmdline(char *options)
+static int __init dvfs_read_gpuoc_cmdline(char *khz)
 {
-	char *p = options;
-	int ui_gpuoc = memparse(p, &p);
+	unsigned long ui_gpuoc;
+	int err;
 
-        /* Check if value is valid */
-	if ((ui_gpuoc > 2) || (ui_gpuoc < 0)) {
+	err = strict_strtoul(khz, 0, &ui_gpuoc);
+	if (err) {
 		cmdline_gpuoc = 0;
-		printk(KERN_INFO "[cmdline_gpuoc]: ERROR! using default: 416Mhz");
-		return 0;
+		printk(KERN_INFO "[cmdline_gpuoc]: ERROR while converting! using default: 416Mhz");
+		return 1;
 	}
+
+	/* Check if parsed value is valid */
+	if ((ui_gpuoc > 2) || (ui_gpuoc < 0))
+		cmdline_gpuoc = 0;
 
 	cmdline_gpuoc = ui_gpuoc;
 	printk(KERN_INFO "[cmdline_gpuoc]: gpuoc='%u' -> %uMhz\n", cmdline_gpuoc,
                ((cmdline_gpuoc == 2)?520:(cmdline_gpuoc == 1)?484:(cmdline_gpuoc == 0)?416:0));
 
-	return 0;
+	return 1;
 
 }
-early_param("gpuoc", dvfs_read_gpuoc_cmdline);
+__setup("gpuoc=", dvfs_read_gpuoc_cmdline);
 #endif
 /* end cmdline_gpu */
 
