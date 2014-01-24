@@ -23,6 +23,7 @@
 
 #define MAX_DVFS_FREQS	18
 #define DVFS_RAIL_STATS_TOP_BIN	40
+#include "clock.h"
 
 #ifdef CONFIG_CMDLINE_OPTIONS
 /* cmdline_gpu vars&functions */
@@ -95,7 +96,7 @@ struct dvfs {
 	int freqs_mult;
 	unsigned long freqs[MAX_DVFS_FREQS];
 	unsigned long alt_freqs[MAX_DVFS_FREQS];
-	const int *millivolts;
+	unsigned int *millivolts;
 	struct dvfs_rail *dvfs_rail;
 	bool auto_dvfs;
 	enum dvfs_alt_freqs alt_freqs_state;
