@@ -379,7 +379,9 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
 #endif
-
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_TOUCHDEMAND)
+extern struct cpufreq_governor cpufreq_gov_touchdemand;
+#define CPUFREQ_DEFAULT_GOVERNOR  (&cpufreq_gov_touchdemand)
 
 /*********************************************************************
  *                     FREQUENCY TABLE HELPERS                       *
