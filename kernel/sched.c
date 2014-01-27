@@ -1901,7 +1901,7 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 #ifdef CONFIG_SMP
 	/*
 	 * After ->cpu is set up to a new value, task_rq_lock(p, ...) can be
-	 * successfuly executed on another CPU. We must ensure that updates of
+	 * successfully executed on another CPU. We must ensure that updates of
 	 * per-task data have been completed by this moment.
 	 */
 	smp_wmb();
@@ -3456,6 +3456,18 @@ unsigned long avg_nr_running(void)
 	return sum;
 }
 
+unsigned long get_avg_nr_running(unsigned int cpu)
+{
+	struct rq *q;
+
+	if (cpu >= nr_cpu_ids)
+		return 0;
+
+	q = cpu_rq(cpu);
+
+	return q->ave_nr_running;
+}
+
 unsigned long nr_iowait_cpu(int cpu)
 {
 	struct rq *this = cpu_rq(cpu);
@@ -4018,41 +4030,12 @@ void update_cpu_load_nohz(void)
 #endif /* CONFIG_NO_HZ */
 
 /*
- * Called from nohz_idle_balance() to update the load ratings before doing the
- * idle balance.
- */
-void update_idle_cpu_load(struct rq *this_rq)
-{
-	unsigned long curr_jiffies = jiffies;
-	unsigned long load = this_rq->load.weight;
-	unsigned long pending_updates;
-
-	/*
-	 * Bloody broken means of dealing with nohz, but better than nothing..
-	 * jiffies is updated by one cpu, another cpu can drift wrt the jiffy
-	 * update and see 0 difference the one time and 2 the next, even though
-	 * we ticked at roughtly the same rate.
-	 *
-	 * Hence we only use this from nohz_idle_balance() and skip this
-	 * nonsense when called from the scheduler_tick() since that's
-	 * guaranteed a stable rate.
-	 */
-	if (load || curr_jiffies == this_rq->last_load_update_tick)
-		return;
-
-	pending_updates = curr_jiffies - this_rq->last_load_update_tick;
-	this_rq->last_load_update_tick = curr_jiffies;
-
-	__update_cpu_load(this_rq, load, pending_updates);
-}
-
-/*
  * Called from scheduler_tick()
  */
 static void update_cpu_load_active(struct rq *this_rq)
 {
 	/*
-	 * See the mess in update_idle_cpu_load().
+	 * See the mess around update_idle_cpu_load() / update_cpu_load_nohz().
 	 */
 	this_rq->last_load_update_tick = jiffies;
 	__update_cpu_load(this_rq, this_rq->load.weight, 1);
