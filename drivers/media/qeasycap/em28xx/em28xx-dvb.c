@@ -26,14 +26,11 @@
 #include <linux/usb.h>
 
 #include "em28xx.h"
-
 #include "../qv4l2-core/qmedia/qv4l2-common.h"
-
-#include <dvb_demux.h>
-#include <dvb_net.h>
+#include "dvb_demux.h"
+#include "dvb_net.h"
 #include <dmxdev.h>
-
-#include "../qv4l2-core/qmedia/qtuner.h"
+#include <media/tuner.h>
 #include "tuner-simple.h"
 #include <linux/gpio.h>
 
