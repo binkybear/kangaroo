@@ -34,7 +34,7 @@
  *	does memory allocation too using vmalloc_32().
  *
  * videobuf_dma_*()
- *	see Documentation/PCI/PCI-DMA-mapping.txt, these functions to
+ *	see Documentation/DMA-API-HOWTO.txt, these functions to
  *	basically the same.  The map function does also build a
  *	scatterlist for the buffer (and unmap frees it ...)
  *
@@ -53,6 +53,9 @@ struct videobuf_dmabuf {
 
 	/* for kernel buffers */
 	void                *vaddr;
+	struct page         **vaddr_pages;
+	dma_addr_t          *dma_addr;
+	struct device       *dev;
 
 	/* for overlay buffers (pci-pci dma) */
 	dma_addr_t          bus_addr;

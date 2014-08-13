@@ -1,0 +1,11 @@
+--- drivers/media/dvb-frontends/m88ds3103.c
++++ drivers/media/dvb-frontends/m88ds3103.c
+@@ -1229,7 +1229,7 @@
+ 		goto err;
+ 
+ 	/* create mux i2c adapter for tuner */
+-	priv->i2c_adapter = i2c_add_mux_adapter(i2c, &i2c->dev, priv, 0, 0,
++	priv->i2c_adapter = i2c_add_mux_adapter(i2c, priv, 0, 0,
+ 			m88ds3103_select, m88ds3103_deselect);
+ 	if (priv->i2c_adapter == NULL)
+ 		goto err;

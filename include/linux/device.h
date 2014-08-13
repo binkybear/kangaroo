@@ -23,6 +23,7 @@
 #include <linux/module.h>
 #include <linux/pm.h>
 #include <linux/atomic.h>
+#include <linux/ratelimit.h>
 #include <asm/device.h>
 
 struct device;
@@ -850,6 +851,33 @@ static inline int _dev_info(const struct device *dev, const char *fmt, ...)
 static inline int _dev_info(const struct device *dev, const char *fmt, ...)
 	{ return 0; }
 
+#endif
+
+#if defined(CONFIG_DYNAMIC_DEBUG)
+/* descriptor check is first to prevent flooding with "callbacks suppressed" */
+#define dev_dbg_ratelimited(dev, fmt, ...)                              \
+do {                                                                    \
+        static DEFINE_RATELIMIT_STATE(_rs,                              \
+                                      DEFAULT_RATELIMIT_INTERVAL,       \
+                                      DEFAULT_RATELIMIT_BURST);         \
+        DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);                 \
+        if (unlikely(descriptor.flags & _DPRINTK_FLAGS_PRINT) &&        \
+            __ratelimit(&_rs))                                          \
+                __dynamic_dev_dbg(&descriptor, dev, fmt,                \
+                                  ##__VA_ARGS__);                       \
+} while (0)
+#elif defined(DEBUG)
+#define dev_dbg_ratelimited(dev, fmt, ...)                              \
+do {                                                                    \
+        static DEFINE_RATELIMIT_STATE(_rs,                              \
+                                      DEFAULT_RATELIMIT_INTERVAL,       \
+                                      DEFAULT_RATELIMIT_BURST);         \
+        if (__ratelimit(&_rs))                                          \
+                dev_printk(KERN_DEBUG, dev, fmt, ##__VA_ARGS__);        \
+} while (0)
+#else
+#define dev_dbg_ratelimited(dev, fmt, ...)                      \
+         no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
 #endif
 
 /*

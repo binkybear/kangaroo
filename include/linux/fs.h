@@ -1902,6 +1902,18 @@ static inline int sb_is_dirty(struct super_block *sb)
 #define fops_put(fops) \
 	do { if (fops) module_put((fops)->owner); } while(0)
 
+/*
+  * This one is to be used *ONLY* from ->open() instances.
+  * fops must be non-NULL, pinned down *and* module dependencies
+  * should be sufficient to pin the caller down as well.
+  */
+ #define replace_fops(f, fops) \
+         do {    \
+                 struct file *__file = (f); \
+                 fops_put(__file->f_op); \
+                 BUG_ON(!(__file->f_op = (fops))); \
+         } while(0)
+
 extern int register_filesystem(struct file_system_type *);
 extern int unregister_filesystem(struct file_system_type *);
 extern struct vfsmount *kern_mount_data(struct file_system_type *, void *data);
@@ -1923,6 +1935,11 @@ extern int thaw_super(struct super_block *super);
 extern bool our_mnt(struct vfsmount *mnt);
 
 extern int current_umask(void);
+
+static inline struct inode *file_inode(struct file *f)
+{
+        return f->f_dentry->d_inode;
+}
 
 /* /sys/fs */
 extern struct kobject *fs_kobj;

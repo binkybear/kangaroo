@@ -1,0 +1,11 @@
+--- drivers/media/dvb-frontends/si2168.c
++++ drivers/media/dvb-frontends/si2168.c
+@@ -696,7 +696,7 @@
+ 		goto err;
+ 
+ 	/* create mux i2c adapter for tuner */
+-	s->adapter = i2c_add_mux_adapter(client->adapter, &client->dev, s,
++	s->adapter = i2c_add_mux_adapter(client->adapter, s,
+ 			0, 0, si2168_select, si2168_deselect);
+ 	if (s->adapter == NULL)
+ 		goto err;

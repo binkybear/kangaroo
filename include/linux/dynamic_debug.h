@@ -75,6 +75,17 @@ static inline int ddebug_remove_module(const char *mod)
 	return 0;
 }
 
+#define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)                \
+         static struct _ddebug  __aligned(8)                     \
+         __attribute__((section("__verbose"))) name = {          \
+                 .modname = KBUILD_MODNAME,                      \
+                 .function = __func__,                           \
+                 .filename = __FILE__,                           \
+                 .format = (fmt),                                \
+                 .lineno = __LINE__,                             \
+                 .flags =  _DPRINTK_FLAGS_DEFAULT,               \
+         }
+ 
 #define dynamic_pr_debug(fmt, ...)					\
 	do { if (0) printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__); } while (0)
 #define dynamic_dev_dbg(dev, fmt, ...)					\

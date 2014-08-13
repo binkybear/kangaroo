@@ -74,22 +74,15 @@ static int dvb_device_open(struct inode *inode, struct file *file)
 
 	if (dvbdev && dvbdev->fops) {
 		int err = 0;
-		const struct file_operations *old_fops;
+		const struct file_operations *new_fops;
 
-		file->private_data = dvbdev;
-		old_fops = file->f_op;
-		file->f_op = fops_get(dvbdev->fops);
-		if (file->f_op == NULL) {
-			file->f_op = old_fops;
+		new_fops = fops_get(dvbdev->fops);
+		if (!new_fops)
 			goto fail;
-		}
-		if(file->f_op->open)
+		file->private_data = dvbdev;
+		replace_fops(file, new_fops);
+		if (file->f_op->open)
 			err = file->f_op->open(inode,file);
-		if (err) {
-			fops_put(file->f_op);
-			file->f_op = fops_get(old_fops);
-		}
-		fops_put(old_fops);
 		up_read(&minor_rwsem);
 		mutex_unlock(&dvbdev_mutex);
 		return err;
@@ -243,6 +236,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 	if (minor == MAX_DVB_MINORS) {
 		kfree(dvbdevfops);
 		kfree(dvbdev);
+		up_write(&minor_rwsem);
 		mutex_unlock(&dvbdev_register_lock);
 		return -EINVAL;
 	}
@@ -417,10 +411,8 @@ int dvb_usercopy(struct file *file,
 	}
 
 	/* call driver */
-	mutex_lock(&dvbdev_mutex);
 	if ((err = func(file, cmd, parg)) == -ENOIOCTLCMD)
-		err = -EINVAL;
-	mutex_unlock(&dvbdev_mutex);
+		err = -ENOTTY;
 
 	if (err < 0)
 		goto out;
@@ -463,6 +455,7 @@ static int __init init_dvbdev(void)
 {
 	int retval;
 	dev_t dev = MKDEV(DVB_MAJOR, 0);
+	printk(KERN_ERR "WARNING: You are using an experimental version of the media stack.\n\tAs the driver is backported to an older kernel, it doesn't offer\n\tenough quality for its usage in production.\n\tUse it with care.\nLatest git patches (needed if you report a bug to linux-media@vger.kernel.org):\n\t0f3bf3dc1ca394a8385079a5653088672b65c5c4 [media] cx23885: fix UNSET/TUNER_ABSENT confusion\n\tee27aa901805dfc9c3a5eb5f0948eba9ab481ba1 [media] coda: fix build error by making reset control optional\n\t27dcb00d0dc1d532b0da940e35a6d020ee33bd47 [media] radio-miropcm20: fix sparse NULL pointer warning\n");
 
 	if ((retval = register_chrdev_region(dev, MAX_DVB_MINORS, "DVB")) != 0) {
 		printk(KERN_ERR "dvb-core: unable to get major %d\n", DVB_MAJOR);
