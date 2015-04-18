@@ -249,7 +249,7 @@ int bcmsdh_probe(struct device *dev)
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach((vendevid >> 16),
 	                                 (vendevid & 0xFFFF), 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh))) {
+	                                (void *)regs, NULL, sdh, dev))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -468,7 +468,7 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach(VENDOR_BROADCOM, /* pdev->vendor, */
 	                                bcmsdh_query_device(sdh) & 0xFFFF, 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh))) {
+	                                (void *)regs, NULL, sdh, pdev->dev))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -636,7 +636,7 @@ int bcmsdh_register_oob_intr(void * dhdp)
 		if (error)
 			return -ENODEV;
 
-		set_irq_wake(sdhcinfo->oob_irq, 1);
+		enable_irq_wake(sdhcinfo->oob_irq);
 		sdhcinfo->oob_irq_registered = TRUE;
 	}
 
@@ -662,7 +662,7 @@ void bcmsdh_unregister_oob_intr(void)
 	SDLX_MSG(("%s: Enter\n", __FUNCTION__));
 
 	if (sdhcinfo->oob_irq_registered) {
-		set_irq_wake(sdhcinfo->oob_irq, 0);
+		disable_irq_wake(sdhcinfo->oob_irq);
 		disable_irq(sdhcinfo->oob_irq);	/* just in case.. */
 		free_irq(sdhcinfo->oob_irq, NULL);
 		sdhcinfo->oob_irq_registered = FALSE;
