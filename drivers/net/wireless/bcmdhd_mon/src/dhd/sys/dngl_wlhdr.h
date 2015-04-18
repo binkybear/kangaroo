@@ -1,5 +1,5 @@
 /*
- * BT-AMP support routines
+ * Dongle WL Header definitions
  *
  * Copyright (C) 1999-2011, Broadcom Corporation
  * 
@@ -21,19 +21,20 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_bta.h,v 1.2 2009-02-26 22:35:56 Exp $
+ * $Id: dngl_wlhdr.h,v 1.1 2009-01-08 01:21:12 Exp $
  */
-#ifndef __dhd_bta_h__
-#define __dhd_bta_h__
 
-struct dhd_pub;
+#ifndef _dngl_wlhdr_h_
+#define _dngl_wlhdr_h_
 
-extern int dhd_bta_docmd(struct dhd_pub *pub, void *cmd_buf, uint cmd_len);
+typedef struct wl_header {
+    uint8   type;           /* Header type */
+    uint8   version;        /* Header version */
+	int8	rssi;			/* RSSI */
+	uint8	pad;			/* Unused */
+} wl_header_t;
 
-extern void dhd_bta_doevt(struct dhd_pub *pub, void *data_buf, uint data_len);
-
-extern int dhd_bta_tx_hcidata(struct dhd_pub *pub, void *data_buf, uint data_len);
-extern void dhd_bta_tx_hcidata_complete(struct dhd_pub *dhdp, void *txp, bool success);
-
-
-#endif /* __dhd_bta_h__ */
+#define WL_HEADER_LEN   sizeof(wl_header_t)
+#define WL_HEADER_TYPE  0
+#define WL_HEADER_VER   1
+#endif /* _dngl_wlhdr_h_ */

@@ -1,5 +1,6 @@
 /*
- * BT-AMP support routines
+ * Common stats definitions for clients of dongle
+ * ports
  *
  * Copyright (C) 1999-2011, Broadcom Corporation
  * 
@@ -21,19 +22,22 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_bta.h,v 1.2 2009-02-26 22:35:56 Exp $
+ * $Id: dngl_stats.h,v 1.5 2008-06-02 16:56:20 Exp $
  */
-#ifndef __dhd_bta_h__
-#define __dhd_bta_h__
 
-struct dhd_pub;
+#ifndef _dngl_stats_h_
+#define _dngl_stats_h_
 
-extern int dhd_bta_docmd(struct dhd_pub *pub, void *cmd_buf, uint cmd_len);
+typedef struct {
+	unsigned long	rx_packets;		/* total packets received */
+	unsigned long	tx_packets;		/* total packets transmitted */
+	unsigned long	rx_bytes;		/* total bytes received */
+	unsigned long	tx_bytes;		/* total bytes transmitted */
+	unsigned long	rx_errors;		/* bad packets received */
+	unsigned long	tx_errors;		/* packet transmit problems */
+	unsigned long	rx_dropped;		/* packets dropped by dongle */
+	unsigned long	tx_dropped;		/* packets dropped by dongle */
+	unsigned long   multicast;      /* multicast packets received */
+} dngl_stats_t;
 
-extern void dhd_bta_doevt(struct dhd_pub *pub, void *data_buf, uint data_len);
-
-extern int dhd_bta_tx_hcidata(struct dhd_pub *pub, void *data_buf, uint data_len);
-extern void dhd_bta_tx_hcidata_complete(struct dhd_pub *dhdp, void *txp, bool success);
-
-
-#endif /* __dhd_bta_h__ */
+#endif /* _dngl_stats_h_ */
